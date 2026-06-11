@@ -49,10 +49,11 @@ metadata:
 当 HR 确认候选人通过后执行。详细步骤见 `references/submit-approval.md`。
 
 概要：
-1. 通过 lark-cli 查询审批模板字段定义
+1. 上传简历 PDF 到飞书审批文件系统（专用接口，非 Drive）
 2. 从简历解析结果中映射字段
 3. 补充缺失字段（询问 HR）
-4. 通过 lark-cli API 创建审批实例
+4. 以当前对话用户身份创建审批实例（发起人 = 谁在和 Agent 对话）
+5. 根据匹配方向自动路由审批人（李诗雯/Tim/Steven）
 
 ## References 路由
 

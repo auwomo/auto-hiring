@@ -17,7 +17,7 @@ lark-cli api GET /open-apis/approval/v4/approvals/:approval_code \
 从返回的 `data.form` 中解析字段列表，每个字段包含：
 - `id` — 字段唯一标识
 - `name` — 字段显示名
-- `type` — 字段类型（input/textarea/date/select/...）
+- `type` — 字段类型（input/textarea/date/select/attachmentV2/...）
 - `required` — 是否必填
 - `option` — 选项列表（select 类型）
 
@@ -36,12 +36,27 @@ lark-cli api GET /open-apis/approval/v4/approvals/:approval_code \
 | widget17682115506100001 | 劣势 | textarea | ✅ | 评估报告.风险点（自动填入） |
 | widget16941367008630001 | cv | attachmentV2 | ✅ | 候选人原始 PDF 简历附件 |
 
-**注意事项：**
-- `cv` 字段类型为 `attachmentV2`，需先上传简历文件到飞书再填入文件 token。
-- `简历来源` 默认填入 "Auwomo 自动匹配"，用户可覆盖。
-- `优势`/`劣势` 从评估报告中自动提取，用户确认后填入。
+## Step 3 — 上传简历到审批系统
 
-## Step 3 — 补充缺失字段
+⚠️ **重要**：审批附件必须通过**审批专用文件上传接口**上传，不能使用 Drive 上传的 file_token。
+
+```bash
+cd <简历所在目录> && \
+lark-cli api POST /open-apis/approval/v4/files/upload \
+  --params '{"type":"attachment"}' \
+  --file "file=./简历文件名.pdf" \
+  --as bot --format json
+```
+
+返回结果中 `data.urls_detail[0].code` 即为附件 code，用于填入 `attachmentV2` 字段的 value。
+
+**注意事项：**
+- `lark-cli api --file` 只接受**相对路径**（安全限制），必须先 `cd` 到文件目录
+- `type` 参数：附件用 `attachment`，图片用 `image`
+- 每次只能上传一个文件
+- 附件大小限制 50 MB
+
+## Step 4 — 补充缺失字段
 
 对于无法从简历中自动提取的必填字段（如简历中无手机号、无邮箱等），询问 HR：
 
@@ -53,22 +68,7 @@ lark-cli api GET /open-apis/approval/v4/approvals/:approval_code \
 请提供，或输入"跳过"使用默认值。
 ```
 
-对于 `cv` 附件字段，将候选人原始 PDF 上传到飞书后获取 file_id 填入。
-
-## Step 4 — 创建审批实例
-
-组装请求 body 并提交：
-
-```bash
-lark-cli api POST /open-apis/approval/v4/instances \
-  --data '{
-    "approval_code": "<approval_code>",
-    "open_id": "<发起人open_id>",
-    "form": "<form_json_string>",
-    "node_approver_open_id_list": [...]
-  }' \
-  --as bot --format json
-```
+## Step 5 — 组装 form 并创建审批实例
 
 ### form 字段格式
 
@@ -76,13 +76,60 @@ lark-cli api POST /open-apis/approval/v4/instances \
 
 ```json
 [
-  {"id": "widget1", "type": "input", "value": "张三"},
-  {"id": "widget2", "type": "input", "value": "算法工程师"},
-  {"id": "widget3", "type": "input", "value": "13800138000"}
+  {"id": "widget16510687659170001", "type": "input", "value": "张三"},
+  {"id": "widget17782207135510001", "type": "input", "value": "Auwomo 自动匹配"},
+  {"id": "widget16510687945600001", "type": "input", "value": "13800138000"},
+  {"id": "widget16510687997020001", "type": "input", "value": "test@example.com"},
+  {"id": "widget17682115238860001", "type": "input", "value": "清华大学"},
+  {"id": "widget17682115896530001", "type": "input", "value": "字节跳动 - 算法工程师"},
+  {"id": "widget17760471107320001", "type": "input", "value": "具身算法专家"},
+  {"id": "widget17682115396360001", "type": "textarea", "value": "ROS经验丰富，有实物机器人项目"},
+  {"id": "widget17682115506100001", "type": "textarea", "value": "缺少大模型融合经验"},
+  {"id": "widget16941367008630001", "type": "attachmentV2", "value": ["文件上传返回的code"]}
 ]
 ```
 
-## Step 5 — 确认结果
+**`attachmentV2` 格式要点：**
+- `value` 是**字符串数组**，每个元素是 Step 3 上传接口返回的 `code`
+- 不是对象数组，不是 file_token，是审批文件系统的 code
+
+### 发起人身份
+
+API 必须指定一个真实飞书用户作为审批发起人（Bot 没有用户身份，不能以 Bot 名义发起）。
+
+**规则：当前与 Agent 对话的用户即为发起人。** 从对话上下文中获取用户的 `open_id`。
+
+### 创建请求
+
+```bash
+lark-cli api POST /open-apis/approval/v4/instances \
+  --data '{
+    "approval_code": "57E726C3-EA5E-4422-A2F3-ACED3A75F8D2",
+    "open_id": "<当前对话用户的open_id>",
+    "form": "<form_json_string>"
+  }' \
+  --as bot --format json
+```
+
+### 审批人路由（可选）
+
+如果审批节点设置了"发起人自选审批人"，需要通过 `node_approver_open_id_list` 指定：
+
+```json
+{
+  "node_approver_open_id_list": [
+    {
+      "key": "<node_id>",
+      "value": ["<审批人open_id>"]
+    }
+  ]
+}
+```
+
+审批人根据匹配方向路由（见 `references/team-profiles.md` 的审批路由规则）。
+当前审批节点的 node_id 见下方常量区。
+
+## Step 6 — 确认结果
 
 提交成功后输出：
 
@@ -91,6 +138,7 @@ lark-cli api POST /open-apis/approval/v4/instances \
 - 实例编号：{instance_code}
 - 候选人：{姓名}
 - 申请职位：{职位}
+- 发起人：{当前用户}
 - 当前状态：待审批
 
 审批流程已启动，后续进度可通过飞书审批查看。
@@ -101,12 +149,22 @@ lark-cli api POST /open-apis/approval/v4/instances \
 ## 常量
 
 - **审批 approval_code:** `57E726C3-EA5E-4422-A2F3-ACED3A75F8D2`（人事 - 西湖数智）
-- **发起人 open_id:** `ou_9cbf85f91eaebd447e507cd9d52f3873`（郭凯文）
-- **审批节点顺序：** 发起 → 简历筛查 → 一面 → 二面 → 终面 → 办理 → 结束
+- **发起人 open_id:** 动态 — 当前对话用户的 open_id
+- **审批节点：**
+
+| 节点名 | node_id | 类型 | 需指定审批人 |
+|--------|---------|------|-------------|
+| 发起 | b078ffd28db767c502ac367053f6e0ac | AND | 否 |
+| 简历筛查 | 195995043844a471d88ce4a273579a51 | OR | 否（固定） |
+| 一面 | c100320a29e913fa43107515e560b6fe | OR | 是（自选） |
+| 二面 | 106d5da02d8fc3e9998ebfe64e106cce | OR | 是（自选） |
+| 终面 | 6590285849845c2822e828e033fd7f37 | AND | 否（固定） |
+| 办理 | 94effe9deb0bfac1ef1ced4d4d344c75 | AND | 否（固定） |
+| 结束 | b1a326c06d88bf042f73d70f50197905 | AND | 否 |
 
 ## 权限要求
 
-此流程需要 Bot-Hiring 应用具备以下飞书权限：
+此流程需要 Bot 应用具备以下飞书权限：
 - `approval:approval` — 审批应用
 - `approval:approval:readonly` — 读取审批定义
 - `approval:instance` — 创建/读取审批实例
