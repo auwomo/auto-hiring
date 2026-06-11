@@ -4,7 +4,7 @@ description: >
   简历自动匹配与评估。接收候选人 PDF 简历，解析关键信息，根据团队组员画像自动匹配最合适的岗位/方向，
   给出初步评估并推送给 HR。HR 确认通过后，自动查询飞书审批字段并创建审批实例。
   Triggers: 收到简历, 匹配岗位, 评估候选人, 提交审批, 简历分析, auto hiring, resume match.
-  NOT for: 通用文件处理, 消息群发.
+  NOT for: 招聘进度报表(用 xihu-hiring), 通用文件处理, 消息群发.
 metadata:
   openclaw:
     requires:

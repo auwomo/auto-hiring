@@ -3,3 +3,4 @@ node_modules/
 *.log
 openclaw.json
 openclaw_副本.json
+.DS_Store
