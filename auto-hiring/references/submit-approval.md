@@ -162,6 +162,24 @@ lark-cli api POST /open-apis/approval/v4/instances \
 | 办理 | 94effe9deb0bfac1ef1ced4d4d344c75 | AND | 否（固定） |
 | 结束 | b1a326c06d88bf042f73d70f50197905 | AND | 否 |
 
+## Step 0 — 获取简历 PDF 文件
+
+用户发来的 PDF 简历需要先下载到本地：
+
+```bash
+lark-cli im +messages-mget --message-ids "<message_id>" --download-resources --as bot
+```
+
+文件会下载到 `./lark-im-resources/<file_key>.<ext>`，后续步骤使用该本地路径。
+
+## 操作注意事项（必读）
+
+1. **lark-cli `--file` 和 `--data @file` 都只接受相对路径** — 必须先 `cd` 到文件所在目录，再用 `./filename`
+2. **审批附件上传接口** — `/open-apis/approval/v4/files/upload?type=attachment`，不是 Drive 上传
+3. **attachmentV2 value 是字符串数组** — `["CODE"]` 不是对象数组
+4. **发起人必须是真实用户 open_id** — Bot 不能发起审批
+5. **一面/二面节点审批人可不填** — 不填 `node_approver_open_id_list` 时，等审批流转到时由发起人手动选择
+
 ## 权限要求
 
 此流程需要 Bot 应用具备以下飞书权限：
