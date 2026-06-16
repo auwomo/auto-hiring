@@ -82,9 +82,9 @@ lark-cli api POST /open-apis/approval/v4/files/upload \
   {"id": "widget16510687997020001", "type": "input", "value": "test@example.com"},
   {"id": "widget17682115238860001", "type": "input", "value": "清华大学"},
   {"id": "widget17682115896530001", "type": "input", "value": "字节跳动 - 算法工程师"},
-  {"id": "widget17760471107320001", "type": "input", "value": "具身算法专家"},
-  {"id": "widget17682115396360001", "type": "textarea", "value": "ROS经验丰富，有实物机器人项目"},
-  {"id": "widget17682115506100001", "type": "textarea", "value": "缺少大模型融合经验"},
+  {"id": "widget17760471107320001", "type": "input", "value": "基模方向"},
+  {"id": "widget17682115396360001", "type": "textarea", "value": "有顶会论文，world model经验丰富"},
+  {"id": "widget17682115506100001", "type": "textarea", "value": "缺少大规模分布式训练实际落地经验"},
   {"id": "widget16941367008630001", "type": "attachmentV2", "value": ["文件上传返回的code"]}
 ]
 ```
@@ -111,23 +111,31 @@ lark-cli api POST /open-apis/approval/v4/instances \
   --as bot --format json
 ```
 
-### 审批人路由（可选）
+### 一面审批人路由
 
-如果审批节点设置了"发起人自选审批人"，需要通过 `node_approver_open_id_list` 指定：
+一面节点需通过 `node_approver_open_id_list` 指定审批人，根据匹配方向自动路由（见 `references/team-profiles.md`）：
+
+| 匹配方向 | 一面审批人 |
+|---------|-----------|
+| 基模方向 | 马恩慧 |
+| Post-training | 马子健 |
+| Infra 加速 | 郭凯文 |
+| RL 仿真 | 李诗雯 |
+| 数据算法 | 王鑫 |
 
 ```json
 {
   "node_approver_open_id_list": [
     {
-      "key": "<node_id>",
-      "value": ["<审批人open_id>"]
+      "key": "c100320a29e913fa43107515e560b6fe",
+      "value": ["<一面面试官open_id>"]
     }
   ]
 }
 ```
 
-审批人根据匹配方向路由（见 `references/team-profiles.md` 的审批路由规则）。
-当前审批节点的 node_id 见下方常量区。
+> 注：一面节点 `node_id` = `c100320a29e913fa43107515e560b6fe`（自选审批人）。
+> 二面/终面路由待后续补充。当前面试官 open_id 均待补充。
 
 ## Step 6 — 确认结果
 
@@ -137,7 +145,8 @@ lark-cli api POST /open-apis/approval/v4/instances \
 ✅ 审批已创建
 - 实例编号：{instance_code}
 - 候选人：{姓名}
-- 申请职位：{职位}
+- 申请职位：{方向}
+- 一面面试官：{面试官}
 - 发起人：{当前用户}
 - 当前状态：待审批
 
@@ -178,11 +187,5 @@ lark-cli im +messages-mget --message-ids "<message_id>" --download-resources --a
 2. **审批附件上传接口** — `/open-apis/approval/v4/files/upload?type=attachment`，不是 Drive 上传
 3. **attachmentV2 value 是字符串数组** — `["CODE"]` 不是对象数组
 4. **发起人必须是真实用户 open_id** — Bot 不能发起审批
-5. **一面/二面节点审批人可不填** — 不填 `node_approver_open_id_list` 时，等审批流转到时由发起人手动选择
-
-## 权限要求
-
-此流程需要 Bot 应用具备以下飞书权限：
-- `approval:approval` — 审批应用
-- `approval:approval:readonly` — 读取审批定义
-- `approval:instance` — 创建/读取审批实例
+5. **一面节点需指定审批人** — 根据匹配方向从 `team-profiles.md` 获取对应一面面试官
+6. **二面/终面节点审批人可不填** — 等审批流转到时由发起人手动选择

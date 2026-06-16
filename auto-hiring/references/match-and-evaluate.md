@@ -22,10 +22,20 @@ python3 -c "import pdfplumber" 2>/dev/null || pip install pdfplumber -q
 ## Step 2 — 加载团队画像
 
 读取 `references/team-profiles.md`，获取所有方向的：
-- 方向名称和负责人
-- 当前在做什么
-- 需要什么样的人（硬性要求 + 软性偏好）
+- 方向名称、一面面试官、审批路由
+- 详细职责（用于判断候选人经验是否对口）
+- 硬性要求 + 加分项
 - 优先级（急/正常/低）
+
+当前 5 个方向：
+
+| 方向 | 一面 | 关键词 |
+|------|------|--------|
+| 基模方向 | 马恩慧、张家焕 | World Model, video generation, 大规模预训练, DreamerV3, Genie |
+| Post-training | 马子健 | RLHF, PPO, DPO, VLA, SFT, reward model |
+| Infra 加速 | 郭凯文、王天亨 | GPU集群, 分布式训练, 推理优化, CUDA, DeepSpeed, vLLM |
+| RL 仿真 | 李诗雯 | Isaac Lab, MuJoCo, 仿真环境, sim-to-real, URDF |
+| 数据算法 | 王鑫、侯志一 | 数据pipeline, 多模态数据, 自动标注, VLM, RLDS |
 
 ## Step 3 — 匹配算法
 
@@ -37,10 +47,43 @@ python3 -c "import pdfplumber" 2>/dev/null || pip install pdfplumber -q
 4. **方向匹配**（权重 20%）— 研究方向/项目经历与团队方向的契合度
 
 输出 Top 1-3 匹配结果，每个包含：
-- 匹配方向 + 负责人
+- 匹配方向 + 一面面试官
 - 匹配度评分（A/B/C/D）
 - 匹配理由（2-3 句）
 - 潜在风险或不确定点
+
+### 方向专属加分项
+
+除了通用匹配维度外，每个方向有如下加分信号：
+
+**基模方向：**
+- 有 CoRL/ICRA/NeurIPS/ICLR/CVPR 顶会论文 → +1 档
+- 熟悉 DreamerV3/UniSim/Genie 任一 → +0.5 档
+- 参与过 LLM/MLLM/diffusion 预训练 → +0.5 档
+
+**Post-training：**
+- 有 CoRL/RSS/NeurIPS/ICLR 顶会论文 → +1 档
+- 有完整 post-training pipeline 经验 → +1 档
+- 熟悉 OpenVLA/π0/RoboFlamingo → +0.5 档
+- 有 Isaac/Mujoco RL 训练经验 → +0.5 档
+
+**Infra 加速：**
+- 有大规模分布式训练/推理落地经验 → +1 档
+- 熟练 CUDA/NCCL profiling → +0.5 档
+- 深度参与过 vLLM/TensorRT-LLM/SGLang → +0.5 档
+- 有 MLSys/OSDI/SOSP/SC 顶会论文 → +0.5 档
+
+**RL 仿真：**
+- 有 Sim-to-Real 实践经验 → +1 档
+- 熟悉 Isaac Lab/MuJoCo 源码级 → +0.5 档
+- 有大规模并行仿真训练经验 → +0.5 档
+- 熟悉 URDF/MJCF/USD → +0.5 档
+
+**数据算法：**
+- 了解 RLDS/LeRobot/Open X-Embodiment → +1 档
+- 有 UE/Isaac/MuJoCo 经验 → +0.5 档
+- 有 VLM 自动标注 pipeline 经验 → +0.5 档
+- 有游戏引擎仿真资产生产经验 → +0.5 档
 
 ### 评分标准（严格）
 
@@ -58,7 +101,7 @@ python3 -c "import pdfplumber" 2>/dev/null || pip install pdfplumber -q
 3. **外包/派遣身份** — OD、外包、劳务派遣等，需评估实际技术深度是否打折
 4. **技能广而不深** — 列了很多技术栈但项目经历无法体现任何一项的深入使用
 5. **学历与岗位错配** — 如统计/数据分析背景申请系统/底层开发岗
-6. **缺乏核心场景经验** — 对目标方向的核心场景（如大模型训练→分布式训练，推理部署→模型优化上线）没有实际经历
+6. **缺乏核心场景经验** — 对目标方向的核心场景没有实际经历
 7. **项目成果模糊** — 只描述做了什么，没有量化结果或技术亮点
 8. **技术栈陈旧** — 使用的框架/工具已过时，没有新技术跟进
 
@@ -86,8 +129,8 @@ python3 -c "import pdfplumber" 2>/dev/null || pip install pdfplumber -q
 💼 最近经历：{最近公司} - {职位}（{时长}）
 
 🎯 推荐匹配：
-1. {方向A}（匹配度: A）— {理由}
-2. {方向B}（匹配度: B）— {理由}
+1. {方向A}（匹配度: A，一面: {面试官}）— {理由}
+2. {方向B}（匹配度: B，一面: {面试官}）— {理由}
 
 ✅ 亮点：{1-3 个突出优势}
 ⚠️ 风险点：{需要注意的地方}
