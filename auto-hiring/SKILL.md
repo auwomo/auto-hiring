@@ -3,7 +3,8 @@ name: auto-hiring
 description: >
   简历自动匹配与评估。接收候选人 PDF 简历，解析关键信息，根据团队组员画像自动匹配最合适的岗位/方向，
   给出初步评估并推送给 HR。HR 确认通过后，自动查询飞书审批字段并创建审批实例。
-  Triggers: 收到简历, 匹配岗位, 评估候选人, 提交审批, 简历分析, auto hiring, resume match.
+  也支持通过对话管理招聘方向（增删改 JD、面试官、路由）。
+  Triggers: 收到简历, 匹配岗位, 评估候选人, 提交审批, 简历分析, auto hiring, resume match, 新增方向, 修改JD, 更新面试官.
   NOT for: 招聘进度报表(用 xihu-hiring), 通用文件处理, 消息群发.
 metadata:
   openclaw:
@@ -16,17 +17,16 @@ metadata:
 
 接收 PDF 简历 → 解析 → 匹配团队岗位 → 评估 → HR 确认 → 创建飞书审批。
 
-当前团队 5 个方向：
+## 方向配置
 
-| 方向 | 一面 | 关键词 |
-|------|------|--------|
-| 基模方向 | 马恩慧、张家焕 | World Model, video generation, 大规模预训练 |
-| Post-training | 马子健 | RLHF, PPO, DPO, VLA, reward model |
-| Infra 加速 | 郭凯文、王天亨 | GPU集群, 分布式训练, 推理优化, CUDA |
-| RL 仿真 | 李诗雯 | Isaac Lab, MuJoCo, sim-to-real, URDF |
-| 数据算法 | 王鑫、侯志一 | 数据pipeline, 多模态数据, VLM标注, RLDS |
+所有招聘方向的元数据（名称、关键词、面试官、审批路由）集中在 `directions/_index.md`。
+各方向详细 JD 存储在 `directions/<slug>.md`。
+
+**执行匹配/审批前必须先读取 `directions/_index.md`。**
 
 ## 触发条件
+
+### 简历匹配（流程 A/B）
 
 用户发送 PDF 简历文件，或说以下任何一种：
 - "帮我看看这个简历" / "这个人合适吗"
@@ -34,12 +34,15 @@ metadata:
 - "提交审批" / "录入这个候选人"
 - "resume match" / "auto hiring"
 
+### 方向管理（流程 C）
+
+- "新增方向" / "添加 JD" / "加一个方向" / "开一个新岗位"
+- "修改 XXX 的 JD" / "更新 XXX 要求"
+- "更新面试官" / "换面试官" / "补充 open_id"
+- "删除方向" / "下线 XXX"
+- 用户直接发送一段 JD 文本（含职责/要求/面试安排等招聘信息，非简历 PDF）
+
 **不触发**：招聘进度报表（用 xihu-hiring）、通用 PDF 处理、群发消息。
-
-## 组员画像配置
-
-团队成员画像存储在 `references/team-profiles.md`，包含每个方向的面试官、JD、要求和审批路由。
-匹配前**必须读取此文件**获取最新信息。
 
 ## 执行流程
 
@@ -49,10 +52,11 @@ metadata:
 
 概要：
 1. 解析 PDF 提取候选人信息（姓名、学历、经历、技能、方向）
-2. 读取 `references/team-profiles.md` 获取团队画像（5 方向 + 一面面试官）
-3. 匹配最合适的 1-3 个方向/组员
-4. 生成评估报告（匹配度、亮点、风险点，含方向专属加分项）
-5. 推送给 HR，等待确认
+2. 读取 `directions/_index.md` 获取所有方向的关键词和面试官
+3. 匹配最合适的 1-3 个方向
+4. 读取匹配到的方向详情 `directions/<slug>.md` 进行深度评估
+5. 生成评估报告（匹配度、亮点、风险点，含方向专属加分项）
+6. 推送给 HR，等待确认
 
 ### 流程 B — 审批提交
 
@@ -63,12 +67,23 @@ metadata:
 2. 从简历解析结果中映射字段
 3. 补充缺失字段（询问 HR）
 4. 以当前对话用户身份创建审批实例
-5. 根据匹配方向自动路由一面审批人（见 team-profiles.md）
+5. 从 `directions/_index.md` 获取匹配方向的 open_id，自动路由一面审批人
+
+### 流程 C — 方向管理
+
+当用户请求管理招聘方向时执行。详细步骤见 `references/manage-directions.md`。
+
+概要：
+1. 新增方向：创建 `directions/<slug>.md` + 在 `_index.md` 注册
+2. 修改 JD：编辑对应方向文件
+3. 更新面试官/路由：编辑 `_index.md` 对应行
+4. 删除方向：移除注册 + 删除文件
 
 ## References 路由
 
 | 场景 | 读取文件 |
 |------|---------|
-| 收到简历需要匹配评估 | `references/match-and-evaluate.md` |
-| HR 确认后要提交审批 | `references/submit-approval.md` |
-| 需要了解团队方向和需求 | `references/team-profiles.md` |
+| 收到简历需要匹配评估 | `references/match-and-evaluate.md` + `directions/_index.md` |
+| HR 确认后要提交审批 | `references/submit-approval.md` + `directions/_index.md` |
+| 需要了解某方向详细 JD | `directions/<slug>.md`（slug 见索引） |
+| 管理方向（增删改 JD） | `references/manage-directions.md` |

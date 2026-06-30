@@ -38,23 +38,25 @@ lark-cli api GET /open-apis/approval/v4/approvals/:approval_code \
 
 ## Step 3 — 上传简历到审批系统
 
-⚠️ **重要**：审批附件必须通过**审批专用文件上传接口**上传，不能使用 Drive 上传的 file_token。
+使用封装脚本上传，**禁止自己拼 curl 命令**（历史上多次因参数组装错误导致 unknown-file）：
 
 ```bash
-cd <简历所在目录> && \
-lark-cli api POST /open-apis/approval/v4/files/upload \
-  --params '{"type":"attachment"}' \
-  --file "file=./简历文件名.pdf" \
-  --as bot --format json
+./scripts/upload-resume.sh <简历PDF路径> "<候选人姓名>-简历.pdf"
 ```
 
-返回结果中 `data.urls_detail[0].code` 即为附件 code，用于填入 `attachmentV2` 字段的 value。
+示例：
+```bash
+./scripts/upload-resume.sh ./lark-im-resources/abc123.pdf "张三-简历.pdf"
+```
+
+**输出：**
+- 成功：输出一行文件 code（UUID 格式，如 `AE127506-AECC-4BFF-8934-3CE7E4D56512`），用于 Step 5 的 attachmentV2 value
+- 失败：输出 `ERROR:` 开头的错误信息，退出码非零 → **停止流程，不要继续创建审批**
 
 **注意事项：**
-- `lark-cli api --file` 只接受**相对路径**（安全限制），必须先 `cd` 到文件目录
-- `type` 参数：附件用 `attachment`，图片用 `image`
-- 每次只能上传一个文件
-- 附件大小限制 50 MB
+- 脚本会自动获取 token、设置正确的 Content-Disposition filename、校验返回
+- 如果显示名不以 `.pdf` 结尾，脚本会自动补充
+- 每次只能上传一个文件，附件大小限制 50 MB
 
 ## Step 4 — 补充缺失字段
 
@@ -89,9 +91,12 @@ lark-cli api POST /open-apis/approval/v4/files/upload \
 ]
 ```
 
-**`attachmentV2` 格式要点：**
-- `value` 是**字符串数组**，每个元素是 Step 3 上传接口返回的 `code`
-- 不是对象数组，不是 file_token，是审批文件系统的 code
+**`attachmentV2` 格式要点（易错！！）：**
+- `value` 是**字符串数组** `["CODE"]`，其中 CODE 是 Step 3 返回的 UUID
+- ❌ 错误：`"value": "CODE"` （字符串）
+- ❌ 错误：`"value": [{"code": "CODE"}]` （对象数组）
+- ❌ 错误：`"value": ["https://..."]` （URL）
+- ✅ 正确：`"value": ["AE127506-AECC-4BFF-8934-3CE7E4D56512"]`
 
 ### 发起人身份
 
@@ -113,15 +118,20 @@ lark-cli api POST /open-apis/approval/v4/instances \
 
 ### 一面审批人路由
 
-一面节点需通过 `node_approver_open_id_list` 指定审批人，根据匹配方向自动路由（见 `references/team-profiles.md`）：
+一面节点需通过 `node_approver_open_id_list` 指定审批人。
 
-| 匹配方向 | 一面审批人 |
-|---------|-----------|
-| 基模方向 | 马恩慧 |
-| Post-training | 马子健 |
-| Infra 加速 | 郭凯文 |
-| RL 仿真 | 李诗雯 |
-| 数据算法 | 王鑫 |
+**路由查询方式：** 读取 `directions/_index.md` 注册表，根据匹配方向找到对应的"审批路由(open_id)"列。
+
+### ⚠️ 前置检查（创建审批前必须执行）
+
+1. 读取 `directions/_index.md` 的注册表
+2. 查找匹配方向对应的"审批路由(open_id)"列
+3. **如果 open_id 为"待补充"或为空 → 停止，不要创建审批**，告知用户：
+   ```
+   ❌ 无法创建审批：{方向} 的一面面试官 open_id 尚未配置。
+   请管理员补充后再试。
+   ```
+4. 只有 open_id 有效时才继续组装 `node_approver_open_id_list`
 
 ```json
 {

@@ -19,29 +19,20 @@
 python3 -c "import pdfplumber" 2>/dev/null || pip install pdfplumber -q
 ```
 
-## Step 2 — 加载团队画像
+## Step 2 — 加载方向索引
 
-读取 `references/team-profiles.md`，获取所有方向的：
-- 方向名称、一面面试官、审批路由
-- 详细职责（用于判断候选人经验是否对口）
-- 硬性要求 + 加分项
+读取 `directions/_index.md`，获取所有方向的：
+- 方向名称、slug（对应详情文件名）
+- 关键词（用于快速匹配）
+- 一面面试官
+- 审批路由 open_id
 - 优先级（急/正常/低）
-
-当前 5 个方向：
-
-| 方向 | 一面 | 关键词 |
-|------|------|--------|
-| 基模方向 | 马恩慧、张家焕 | World Model, video generation, 大规模预训练, DreamerV3, Genie |
-| Post-training | 马子健 | RLHF, PPO, DPO, VLA, SFT, reward model |
-| Infra 加速 | 郭凯文、王天亨 | GPU集群, 分布式训练, 推理优化, CUDA, DeepSpeed, vLLM |
-| RL 仿真 | 李诗雯 | Isaac Lab, MuJoCo, 仿真环境, sim-to-real, URDF |
-| 数据算法 | 王鑫、侯志一 | 数据pipeline, 多模态数据, 自动标注, VLM, RLDS |
 
 ## Step 3 — 匹配算法
 
 对每个方向计算匹配度，考虑以下维度：
 
-1. **技能匹配**（权重 40%）— 候选人技能与岗位要求的重合度
+1. **技能匹配**（权重 40%）— 候选人技能与索引中关键词的重合度
 2. **经验匹配**（权重 25%）— 工作年限、行业经验是否符合
 3. **学历匹配**（权重 15%）— 学历层次、院校、专业相关性
 4. **方向匹配**（权重 20%）— 研究方向/项目经历与团队方向的契合度
@@ -52,38 +43,14 @@ python3 -c "import pdfplumber" 2>/dev/null || pip install pdfplumber -q
 - 匹配理由（2-3 句）
 - 潜在风险或不确定点
 
-### 方向专属加分项
+## Step 3.5 — 深度评估（方向专属加分）
 
-除了通用匹配维度外，每个方向有如下加分信号：
+对 Top 匹配的方向，读取 `directions/<slug>.md` 获取：
+- 详细职责（判断候选人经验是否对口）
+- 硬性要求 + 加分项
+- **匹配加分规则**（每个方向文件底部定义）
 
-**基模方向：**
-- 有 CoRL/ICRA/NeurIPS/ICLR/CVPR 顶会论文 → +1 档
-- 熟悉 DreamerV3/UniSim/Genie 任一 → +0.5 档
-- 参与过 LLM/MLLM/diffusion 预训练 → +0.5 档
-
-**Post-training：**
-- 有 CoRL/RSS/NeurIPS/ICLR 顶会论文 → +1 档
-- 有完整 post-training pipeline 经验 → +1 档
-- 熟悉 OpenVLA/π0/RoboFlamingo → +0.5 档
-- 有 Isaac/Mujoco RL 训练经验 → +0.5 档
-
-**Infra 加速：**
-- 有大规模分布式训练/推理落地经验 → +1 档
-- 熟练 CUDA/NCCL profiling → +0.5 档
-- 深度参与过 vLLM/TensorRT-LLM/SGLang → +0.5 档
-- 有 MLSys/OSDI/SOSP/SC 顶会论文 → +0.5 档
-
-**RL 仿真：**
-- 有 Sim-to-Real 实践经验 → +1 档
-- 熟悉 Isaac Lab/MuJoCo 源码级 → +0.5 档
-- 有大规模并行仿真训练经验 → +0.5 档
-- 熟悉 URDF/MJCF/USD → +0.5 档
-
-**数据算法：**
-- 了解 RLDS/LeRobot/Open X-Embodiment → +1 档
-- 有 UE/Isaac/MuJoCo 经验 → +0.5 档
-- 有 VLM 自动标注 pipeline 经验 → +0.5 档
-- 有游戏引擎仿真资产生产经验 → +0.5 档
+根据方向文件中的"匹配加分规则"调整评分档位。
 
 ### 评分标准（严格）
 
