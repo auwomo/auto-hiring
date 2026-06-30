@@ -104,48 +104,58 @@ API 必须指定一个真实飞书用户作为审批发起人（Bot 没有用户
 
 **规则：当前与 Agent 对话的用户即为发起人。** 从对话上下文中获取用户的 `open_id`。
 
-### 创建请求
+### 面试官路由（一面/二面/三面）
+
+⚠️ **面试官每次由 HR 指定，不是固定的。** 创建审批前必须向 HR 确认各轮面试官。
+
+#### Step 5.1 — 确认面试官
+
+向 HR 确认（以方向文件中的面试安排为默认推荐）：
+
+```
+请确认本次各轮面试官：
+- 一面：{从方向文件推荐}
+- 二面：{从方向文件推荐}
+- 三面：{从方向文件推荐}
+
+需要调整吗？确认后我将创建审批。
+```
+
+#### Step 5.2 — 生成路由 JSON
+
+HR 确认后，使用脚本生成 `node_approver_open_id_list`，**禁止自己组装 JSON**：
+
+```bash
+./scripts/build-approver-nodes.sh --一面 "人名1,人名2" --二面 "人名3,人名4" --三面 "人名5"
+```
+
+示例：
+```bash
+./scripts/build-approver-nodes.sh --一面 "郭凯文,温霆燕" --二面 "狄尧,Tim" --三面 "温霆燕,于开丞"
+```
+
+**输出：** 完整的 `node_approver_open_id_list` JSON 数组，直接用于创建审批请求。
+
+**注意：**
+- 人名必须与 `scripts/people.json` 中注册的名字完全一致
+- 支持每轮多人（逗号分隔）
+- 可以只传部分轮次（如只传 `--一面`，其余不指定）
+- 如果人名找不到会报错，此时停止流程，检查 people.json
+
+#### Step 5.3 — 创建审批（含路由）
+
+将脚本输出的 JSON 作为 `node_approver_open_id_list` 传入：
 
 ```bash
 lark-cli api POST /open-apis/approval/v4/instances \
   --data '{
     "approval_code": "57E726C3-EA5E-4422-A2F3-ACED3A75F8D2",
     "open_id": "<当前对话用户的open_id>",
-    "form": "<form_json_string>"
+    "form": "<form_json_string>",
+    "node_approver_open_id_list": <脚本输出的JSON>
   }' \
   --as bot --format json
 ```
-
-### 一面审批人路由
-
-一面节点需通过 `node_approver_open_id_list` 指定审批人。
-
-**路由查询方式：** 读取 `directions/_index.md` 注册表，根据匹配方向找到对应的"审批路由(open_id)"列。
-
-### ⚠️ 前置检查（创建审批前必须执行）
-
-1. 读取 `directions/_index.md` 的注册表
-2. 查找匹配方向对应的"审批路由(open_id)"列
-3. **如果 open_id 为"待补充"或为空 → 停止，不要创建审批**，告知用户：
-   ```
-   ❌ 无法创建审批：{方向} 的一面面试官 open_id 尚未配置。
-   请管理员补充后再试。
-   ```
-4. 只有 open_id 有效时才继续组装 `node_approver_open_id_list`
-
-```json
-{
-  "node_approver_open_id_list": [
-    {
-      "key": "c100320a29e913fa43107515e560b6fe",
-      "value": ["<一面面试官open_id>"]
-    }
-  ]
-}
-```
-
-> 注：一面节点 `node_id` = `c100320a29e913fa43107515e560b6fe`（自选审批人）。
-> 二面/终面路由待后续补充。当前面试官 open_id 均待补充。
 
 ## Step 6 — 确认结果
 
